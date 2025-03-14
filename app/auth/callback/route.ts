@@ -5,6 +5,7 @@ import { createStripeCustomer } from '@/utils/stripe/api'
 import { db } from '@/utils/db/db'
 import { usersTable } from '@/utils/db/schema'
 import { eq } from "drizzle-orm";
+import { v4 as uuidv4 } from 'uuid';  // Import UUID generation
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -27,8 +28,9 @@ export async function GET(request: Request) {
                 // Create Stripe customer
                 const stripeID = await createStripeCustomer(user!.id, user!.email!, user!.user_metadata.full_name)
                 
-                // Insert a new user record without specifying 'id' (let DB handle auto-increment)
+                // Insert a new user record with generated UUID for 'id'
                 await db.insert(usersTable).values({
+                    id: uuidv4(),  // Generate a new UUID for 'id'
                     name: user!.user_metadata.full_name,
                     email: user!.email!,
                     stripe_id: stripeID,
