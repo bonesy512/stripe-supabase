@@ -20,14 +20,20 @@ export async function GET(request: Request) {
                 data: { user },
             } = await supabase.auth.getUser()
 
-            // check to see if user already exists in db
+            // Check if user already exists in DB
             const checkUserInDB = await db.select().from(usersTable).where(eq(usersTable.email, user!.email!))
             const isUserInDB = checkUserInDB.length > 0 ? true : false
             if (!isUserInDB) {
-                // create Stripe customers
+                // Create Stripe customer
                 const stripeID = await createStripeCustomer(user!.id, user!.email!, user!.user_metadata.full_name)
-                // Create record in DB
-                await db.insert(usersTable).values({ name: user!.user_metadata.full_name, email: user!.email!, stripe_id: stripeID, plan: 'none' })
+                
+                // Insert a new user record without specifying 'id' (let DB handle auto-increment)
+                await db.insert(usersTable).values({
+                    name: user!.user_metadata.full_name,
+                    email: user!.email!,
+                    stripe_id: stripeID,
+                    plan: 'none',
+                })
             }
 
             const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
@@ -43,6 +49,6 @@ export async function GET(request: Request) {
         }
     }
 
-    // return the user to an error page with instructions
+    // Return the user to an error page with instructions
     return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }
