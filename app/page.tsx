@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button"
-import Image from "next/image"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import Link from "next/link"
-import { Star, Check, Coins, UserCheck, Database } from "lucide-react"
-import Stripe from 'stripe'
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import Link from "next/link";
+import { Star, Check, Coins, UserCheck, Database } from "lucide-react";
+import Stripe from 'stripe';
 
 // Types
 interface StripeProduct {
@@ -11,20 +11,20 @@ interface StripeProduct {
   name: string;
   description: string | null;
   features: string[];
-  price: Stripe.Price | null;  // Updated to allow null prices
+  price: Stripe.Price | null; // Updated to allow null prices
 }
 
 // This makes the page dynamic instead of static
-export const revalidate = 3600 // Revalidate every hour
+export const revalidate = 3600; // Revalidate every hour
 
 async function getStripeProducts(): Promise<StripeProduct[]> {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2024-06-20'
+    apiVersion: '2024-06-20',
   });
 
   const products = await stripe.products.list({
     active: true,
-    expand: ['data.default_price']
+    expand: ['data.default_price'],
   });
 
   return products.data.map(product => ({
@@ -32,7 +32,7 @@ async function getStripeProducts(): Promise<StripeProduct[]> {
     name: product.name,
     description: product.description,
     features: product.metadata?.features ? JSON.parse(product.metadata.features) : [],
-    price: product.default_price || null  // Ensures price is null if not set
+    price: product.default_price ? product.default_price : null, // Ensure price is either Stripe.Price or null
   }));
 }
 
@@ -91,30 +91,19 @@ export default async function LandingPage() {
           <div className="container px-4 md:px-6">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-4">Our Features</h2>
             <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3">
-              {products.map(product => (
-                <Card key={product.id} className="border p-4 shadow-lg">
+              {products.map((product) => (
+                <Card key={product.id}>
                   <CardHeader>
                     <CardTitle>{product.name}</CardTitle>
                     <CardDescription>{product.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ul className="list-disc pl-6 space-y-2">
-                      {product.features.map((feature, idx) => (
-                        <li key={idx}>{feature}</li>
-                      ))}
-                    </ul>
-                    {/* Safeguard for product price */}
                     <p className="text-3xl font-bold">
-                      {product.price && product.price.unit_amount
-                        ? `$${(product.price.unit_amount / 100).toFixed(2)}/${product.price.recurring?.interval}`
+                      {product.price
+                        ? `$${(product.price.unit_amount / 100).toFixed(2)}`
                         : 'Custom'}
                     </p>
                   </CardContent>
-                  <CardFooter>
-                    <Button>
-                      <Link href={`/product/${product.id}`}>View Details</Link>
-                    </Button>
-                  </CardFooter>
                 </Card>
               ))}
             </div>
